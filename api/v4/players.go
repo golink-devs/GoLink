@@ -1,22 +1,26 @@
 package v4
 
 import (
+	"context"
+	"time"
+
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golink-devs/golink/internal/hub"
 	"github.com/golink-devs/golink/internal/player"
 	"github.com/golink-devs/golink/internal/sources"
 	"github.com/golink-devs/golink/internal/voice"
+	"github.com/rs/zerolog/log"
 )
 
 type PlayerResponse struct {
-	GuildID string         `json:"guildId"`
-	Track   *sources.Track `json:"track"`
-	Volume  int            `json:"volume"`
-	Paused  bool           `json:"paused"`
+	GuildID string             `json:"guildId"`
+	Track   *sources.Track     `json:"track"`
+	Volume  int                `json:"volume"`
+	Paused  bool               `json:"paused"`
 	State   player.PlayerState `json:"state"`
-	Voice   *VoiceState    `json:"voice"`
-	Filters player.Filters `json:"filters"`
+	Voice   *VoiceState        `json:"voice"`
+	Filters player.Filters     `json:"filters"`
 }
 
 type VoiceState struct {
@@ -70,7 +74,13 @@ func GetPlayer(manager *player.Manager) fiber.Handler {
 		guildID := c.Params("guildId")
 		p, ok := manager.GetPlayer(sessionID, guildID)
 		if !ok {
-			return c.Status(404).SendString("Player not found")
+			return c.Status(404).JSON(fiber.Map{
+				"timestamp": time.Now().UnixMilli(),
+				"status":    404,
+				"error":     "Not Found",
+				"message":   "Player not found",
+				"path":      c.Path(),
+			})
 		}
 		return c.JSON(mapPlayerToResponse(p))
 	}
@@ -84,14 +94,27 @@ func UpdatePlayer(manager *player.Manager, h *hub.Hub, registry *sources.Registr
 
 		var req UpdatePlayerRequest
 		if err := c.BodyParser(&req); err != nil {
-			return c.Status(400).SendString(err.Error())
+			return c.Status(400).JSON(fiber.Map{
+				"timestamp": time.Now().UnixMilli(),
+				"status":    400,
+				"error":     "Bad Request",
+				"message":   err.Error(),
+				"path":      c.Path(),
+			})
 		}
 
 		p, ok := manager.GetPlayer(sessionID, guildID)
 		if !ok {
 			client, ok := h.GetClient(sessionID)
 			if !ok {
-				return c.Status(400).SendString("Session not found")
+				log.Warn().Str("session_id", sessionID).Msg("Session not found during player update")
+				return c.Status(400).JSON(fiber.Map{
+					"timestamp": time.Now().UnixMilli(),
+					"status":    400,
+					"error":     "Bad Request",
+					"message":   "Session not found",
+					"path":      c.Path(),
+				})
 			}
 			p = manager.CreatePlayer(sessionID, client.UserID, guildID)
 		}
@@ -109,6 +132,8 @@ func UpdatePlayer(manager *player.Manager, h *hub.Hub, registry *sources.Registr
 					Encoded: req.Track.Encoded,
 					Info:    *info,
 				}
+			} else {
+				log.Debug().Err(err).Str("encoded", req.Track.Encoded).Msg("Failed to decode track")
 			}
 		} else if req.Identifier != "" {
 			res, err := registry.Resolve(c.Context(), req.Identifier)
@@ -119,7 +144,6 @@ func UpdatePlayer(manager *player.Manager, h *hub.Hub, registry *sources.Registr
 		}
 
 		if track != nil {
-			// Resolve stream URL
 			var streamURL string
 			if track.Info.SourceName == "youtube" {
 				yt := sources.NewYouTubeResolver()
@@ -137,7 +161,10 @@ func UpdatePlayer(manager *player.Manager, h *hub.Hub, registry *sources.Registr
 			}
 
 			if streamURL != "" {
-				p.Play(c.Context(), *track, streamURL)
+				// Use context.Background() so playback continues after request
+				if err := p.Play(context.Background(), *track, streamURL); err != nil {
+					log.Error().Err(err).Msg("Failed to start playback")
+				}
 			}
 		}
 
@@ -156,13 +183,11 @@ func UpdatePlayer(manager *player.Manager, h *hub.Hub, registry *sources.Registr
 
 		if req.Voice != nil {
 			userID, _ := snowflake.Parse(p.UserID)
-			guildID, _ := snowflake.Parse(p.GuildID)
+			guildIDID, _ := snowflake.Parse(p.GuildID)
 			if p.VoiceConn == nil {
-				p.VoiceConn = voice.NewVoiceConn(userID, guildID)
+				p.VoiceConn = voice.NewVoiceConn(userID, guildIDID)
 			}
-			// In a real implementation, we would also need the channelID here
-			// which is often sent separately or expected in the voice state
-			// For now we omit the actual Open call until we have full flow
+			// Voice connection opening would happen here in a full implementation
 		}
 
 		return c.JSON(mapPlayerToResponse(p))

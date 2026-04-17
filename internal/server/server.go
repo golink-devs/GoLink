@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/golink-devs/golink/api/v1"
 	"github.com/golink-devs/golink/api/v4"
 	"github.com/golink-devs/golink/internal/config"
@@ -26,7 +27,22 @@ type Server struct {
 func New(cfg *config.Config) *Server {
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			code := fiber.StatusInternalServerError
+			if e, ok := err.(*fiber.Error); ok {
+				code = e.Code
+			}
+			log.Error().Err(err).Str("path", c.Path()).Int("status", code).Msg("Request error")
+			return c.Status(code).JSON(fiber.Map{
+				"timestamp": time.Now().UnixMilli(),
+				"status":    code,
+				"error":     err.Error(),
+				"path":      c.Path(),
+			})
+		},
 	})
+
+	app.Use(logger.New())
 
 	h := hub.NewHub()
 	playerManager := player.NewManager(h)
