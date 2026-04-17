@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/disgoorg/disgo/voice"
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golink-devs/golink/internal/hub"
 	"github.com/golink-devs/golink/internal/player"
 	"github.com/golink-devs/golink/internal/sources"
-	"github.com/golink-devs/golink/internal/voice"
+	ivoice "github.com/golink-devs/golink/internal/voice"
 	"github.com/rs/zerolog/log"
 )
 
@@ -198,11 +199,20 @@ func UpdatePlayer(manager *player.Manager, h *hub.Hub, registry *sources.Registr
 
 		if req.Voice != nil {
 			userID, _ := snowflake.Parse(p.UserID)
-			guildIDID, _ := snowflake.Parse(p.GuildID)
 			if p.VoiceConn == nil {
-				p.VoiceConn = voice.NewVoiceConn(userID, guildIDID)
+				guildIDID, _ := snowflake.Parse(p.GuildID)
+				p.VoiceConn = ivoice.NewVoiceConn(userID, guildIDID)
 			}
-			// Voice connection opening would happen here in a full implementation
+			if err := p.VoiceConn.Open(context.Background(), userID, req.Voice.SessionID, req.Voice.Token, req.Voice.Endpoint); err != nil {
+				log.Error().Err(err).Str("guild_id", p.GuildID).Msg("Failed to open voice connection")
+			} else {
+				log.Info().Str("guild_id", p.GuildID).Msg("Voice connection established")
+				// Set speaking flag and feed audio if already playing
+				_ = p.VoiceConn.SetSpeaking(context.Background(), voice.SpeakingFlagMicrophone)
+				if p.Pipeline != nil {
+					p.VoiceConn.SetOpusFrameProvider(p.Pipeline)
+				}
+			}
 		}
 
 		return c.JSON(mapPlayerToResponse(p))

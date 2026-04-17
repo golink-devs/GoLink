@@ -8,7 +8,7 @@ import (
 	"github.com/golink-devs/golink/internal/audio"
 	"github.com/golink-devs/golink/internal/hub"
 	"github.com/golink-devs/golink/internal/sources"
-	"github.com/golink-devs/golink/internal/voice"
+	ivoice "github.com/golink-devs/golink/internal/voice"
 )
 
 type LoopMode int
@@ -35,7 +35,7 @@ type Player struct {
 	LoopMode LoopMode
 
 	Pipeline  *audio.Pipeline
-	VoiceConn *voice.VoiceConn
+	VoiceConn *ivoice.VoiceConn
 	Hub       *hub.Hub
 
 	mu sync.RWMutex

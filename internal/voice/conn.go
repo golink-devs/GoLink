@@ -3,6 +3,7 @@ package voice
 import (
 	"context"
 	"log/slog"
+	"strings"
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/gateway"
@@ -18,7 +19,12 @@ type VoiceConn struct {
 }
 
 func NewVoiceConn(userID snowflake.ID, guildID snowflake.ID) *VoiceConn {
-	manager := voice.NewManager(nil,
+	// Provide a no-op voiceStateUpdateFunc to avoid "shard is not ready" or other gateway errors.
+	noOpStateUpdate := func(ctx context.Context, guildID snowflake.ID, channelID *snowflake.ID, selfMute bool, selfDeaf bool) error {
+		return nil
+	}
+
+	manager := voice.NewManager(noOpStateUpdate,
 		userID,
 		voice.WithDaveSessionCreateFunc(func(logger *slog.Logger, userId godave.UserID, callbacks godave.Callbacks) godave.Session {
 			return golibdave.NewSession(logger, userId, callbacks)
@@ -33,7 +39,14 @@ func NewVoiceConn(userID snowflake.ID, guildID snowflake.ID) *VoiceConn {
 	}
 }
 
-func (c *VoiceConn) Open(ctx context.Context, channelID snowflake.ID, userID snowflake.ID, sessionID string, token string, endpoint string) error {
+func (c *VoiceConn) Open(ctx context.Context, userID snowflake.ID, sessionID string, token string, endpoint string) error {
+	// Trim port from endpoint if present
+	endpoint = strings.TrimSuffix(endpoint, ":80")
+	endpoint = strings.TrimSuffix(endpoint, ":443")
+
+	// We use a dummy channel ID because Lavalink doesn't receive it from the bot in player update.
+	channelID := snowflake.ID(1)
+
 	c.conn.HandleVoiceStateUpdate(gateway.EventVoiceStateUpdate{
 		VoiceState: discord.VoiceState{
 			GuildID:   c.conn.GuildID(),
@@ -49,7 +62,14 @@ func (c *VoiceConn) Open(ctx context.Context, channelID snowflake.ID, userID sno
 		Endpoint: &endpoint,
 	})
 
-	return c.conn.Open(ctx, channelID, false, false)
+	// Use correct signature for voice.Gateway.Open
+	return c.conn.Gateway().Open(ctx, voice.State{
+		GuildID:   c.conn.GuildID(),
+		UserID:    userID,
+		SessionID: sessionID,
+		Token:     token,
+		Endpoint:  endpoint,
+	})
 }
 
 func (c *VoiceConn) IsConnected() bool {
