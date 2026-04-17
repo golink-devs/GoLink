@@ -1,11 +1,12 @@
+require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const { Shoukaku, Connectors } = require('shoukaku');
 
 const Nodes = [{
-    name: 'GoLink',
-    url: 'localhost:2333',
-    auth: 'youshallnotpass',
-    secure: false
+    name: process.env.GOLINK_NODE_NAME || 'GoLink',
+    url: process.env.GOLINK_NODE_URL || 'localhost:2333',
+    auth: process.env.GOLINK_NODE_AUTH || 'youshallnotpass',
+    secure: process.env.GOLINK_NODE_SECURE === 'true'
 }];
 
 const client = new Client({

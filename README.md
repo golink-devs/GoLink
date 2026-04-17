@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/golink-devs/.github/main/profile/file_0000000004c87208ab33c65ea5c8a466.png" width="200" alt="GoLink Logo">
+</p>
+
 # GoLink
 
 GoLink is a **Lavalink-compatible audio sending node** written in Go. It acts as a drop-in replacement for Lavalink v4, allowing Discord bots to connect and stream audio with high performance and low overhead.

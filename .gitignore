@@ -1,0 +1,17 @@
+# Binaries
+/golink
+/golink.exe
+
+# Build and IDE
+/build/
+/.idea/
+/.vscode/
+/vendor/
+
+# Test Bot
+/test_bot/node_modules/
+/test_bot/.env
+
+# Local Config
+/config.yml
+/plugins/
