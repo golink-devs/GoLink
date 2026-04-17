@@ -2,6 +2,7 @@ package v4
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/disgoorg/snowflake/v2"
@@ -30,14 +31,14 @@ type VoiceState struct {
 }
 
 type UpdatePlayerRequest struct {
-	Track      *UpdateTrackRequest `json:"track,omitempty"`
-	Identifier string              `json:"identifier,omitempty"`
-	Position   *int64              `json:"position,omitempty"`
-	EndTime    *int64              `json:"endTime,omitempty"`
-	Volume     *int                `json:"volume,omitempty"`
-	Paused     *bool               `json:"paused,omitempty"`
-	Filters    *player.Filters     `json:"filters,omitempty"`
-	Voice      *VoiceState         `json:"voice,omitempty"`
+	Track      json.RawMessage `json:"track,omitempty"`
+	Identifier string          `json:"identifier,omitempty"`
+	Position   *int64          `json:"position,omitempty"`
+	EndTime    *int64          `json:"endTime,omitempty"`
+	Volume     *int            `json:"volume,omitempty"`
+	Paused     *bool           `json:"paused,omitempty"`
+	Filters    *player.Filters `json:"filters,omitempty"`
+	Voice      *VoiceState     `json:"voice,omitempty"`
 }
 
 type UpdateTrackRequest struct {
@@ -125,15 +126,29 @@ func UpdatePlayer(manager *player.Manager, h *hub.Hub, registry *sources.Registr
 
 		// Handle track update
 		var track *sources.Track
-		if req.Track != nil && req.Track.Encoded != "" {
-			info, err := sources.DecodeTrack(req.Track.Encoded)
-			if err == nil {
-				track = &sources.Track{
-					Encoded: req.Track.Encoded,
-					Info:    *info,
-				}
+		if len(req.Track) > 0 {
+			var encoded string
+			// Try to unmarshal as object first
+			var utr UpdateTrackRequest
+			if err := json.Unmarshal(req.Track, &utr); err == nil && utr.Encoded != "" {
+				encoded = utr.Encoded
 			} else {
-				log.Debug().Err(err).Str("encoded", req.Track.Encoded).Msg("Failed to decode track")
+				// Fallback to unmarshalling as plain string
+				if err := json.Unmarshal(req.Track, &encoded); err != nil {
+					log.Debug().Err(err).Str("track_raw", string(req.Track)).Msg("Failed to unmarshal track as string or object")
+				}
+			}
+
+			if encoded != "" {
+				info, err := sources.DecodeTrack(encoded)
+				if err == nil {
+					track = &sources.Track{
+						Encoded: encoded,
+						Info:    *info,
+					}
+				} else {
+					log.Debug().Err(err).Str("encoded", encoded).Msg("Failed to decode track info")
+				}
 			}
 		} else if req.Identifier != "" {
 			res, err := registry.Resolve(c.Context(), req.Identifier)
