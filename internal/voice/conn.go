@@ -63,13 +63,19 @@ func (c *VoiceConn) Open(ctx context.Context, userID snowflake.ID, sessionID str
 	})
 
 	// Use correct signature for voice.Gateway.Open
-	return c.conn.Gateway().Open(ctx, voice.State{
+	err := c.conn.Gateway().Open(ctx, voice.State{
 		GuildID:   c.conn.GuildID(),
+		ChannelID: &channelID,
 		UserID:    userID,
 		SessionID: sessionID,
 		Token:     token,
 		Endpoint:  endpoint,
 	})
+
+	if err != nil && err.Error() == "voice gateway already connected" {
+		return nil
+	}
+	return err
 }
 
 func (c *VoiceConn) IsConnected() bool {
