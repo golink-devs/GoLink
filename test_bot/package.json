@@ -1,0 +1,13 @@
+{
+  "name": "golink-test-bot",
+  "version": "1.0.0",
+  "description": "Simple Discord bot to test GoLink",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "shoukaku": "^4.0.0"
+  }
+}

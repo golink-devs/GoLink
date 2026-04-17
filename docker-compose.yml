@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  golink:
+    build: .
+    ports:
+      - "2333:2333"
+    volumes:
+      - ./config.yml:/etc/golink/config.yml
+      - ./plugins:/golink/plugins
+    restart: unless-stopped
+    environment:
+      - GOLINK_PASSWORD=youshallnotpass

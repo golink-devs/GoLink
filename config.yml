@@ -1,0 +1,26 @@
+server:
+  port: 2333
+  host: 0.0.0.0
+  password: "youshallnotpass"
+
+sources:
+  youtube: true
+  spotify: true
+  applemusic: true
+  soundcloud: true
+  deezer: true
+  http: true
+
+cache:
+  enabled: true
+  ttl: 3600  # seconds, how long resolved track metadata is cached
+
+metrics:
+  enabled: true  # exposes GET /metrics for Prometheus scraping
+
+plugins:
+  enabled: true
+  path: ./plugins  # directory to scan for plugin .so/.dll files
+
+logging:
+  level: INFO  # DEBUG | INFO | WARN | ERROR
