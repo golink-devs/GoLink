@@ -9,6 +9,7 @@ import (
 	"github.com/golink-devs/golink/api/v4"
 	"github.com/golink-devs/golink/internal/config"
 	"github.com/golink-devs/golink/internal/hub"
+	"github.com/golink-devs/golink/internal/player"
 	"github.com/golink-devs/golink/internal/sources"
 	"github.com/rs/zerolog/log"
 )

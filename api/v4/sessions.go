@@ -16,7 +16,7 @@ func RegisterSessionRoutes(router fiber.Router, h *hub.Hub) {
 
 func UpdateSession(h *hub.Hub) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		sessionID := c.Params("sessionId")
+		_ = c.Params("sessionId")
 		var req UpdateSessionRequest
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(400).SendString(err.Error())

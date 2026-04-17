@@ -22,15 +22,11 @@ func NewSpotifyResolver(clientID, clientSecret string, youtube *YouTubeResolver)
 	config := &clientcredentials.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
-		TokenURL:     spotify.TokenURL,
-	}
-	token, err := config.Token(context.Background())
-	if err != nil {
-		return &SpotifyResolver{youtube: youtube}
+		TokenURL:     "https://accounts.spotify.com/api/token",
 	}
 
 	httpClient := config.Client(context.Background())
-	client := spotify.New(httpClient, spotify.WithToken(token))
+	client := spotify.New(httpClient)
 
 	return &SpotifyResolver{
 		client:  client,

@@ -6,6 +6,7 @@ import (
 	"github.com/disgoorg/godave"
 	"github.com/disgoorg/godave/golibdave"
 	"github.com/disgoorg/godave/libdave"
+	"github.com/disgoorg/snowflake/v2"
 )
 
 func init() {
@@ -14,6 +15,8 @@ func init() {
 }
 
 // NewDAVESession creates a new DAVE session for a guild voice connection.
-func NewDAVESession(logger *slog.Logger) (godave.Session, error) {
-	return golibdave.NewSession(logger)
+func NewDAVESession(logger *slog.Logger, userID snowflake.ID) (godave.Session, error) {
+	// golibdave.NewSession matches the signature expected by godave
+	session := golibdave.NewSession(logger, godave.UserID(userID.String()), nil)
+	return session, nil
 }

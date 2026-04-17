@@ -75,6 +75,7 @@ func GetPlayer(manager *player.Manager) fiber.Handler {
 		return c.JSON(mapPlayerToResponse(p))
 	}
 }
+
 func UpdatePlayer(manager *player.Manager, h *hub.Hub, registry *sources.Registry) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		sessionID := c.Params("sessionId")
@@ -141,7 +142,6 @@ func UpdatePlayer(manager *player.Manager, h *hub.Hub, registry *sources.Registr
 		}
 
 		if req.Volume != nil {
-...
 			p.SetVolume(*req.Volume)
 		}
 		if req.Paused != nil {
@@ -160,23 +160,9 @@ func UpdatePlayer(manager *player.Manager, h *hub.Hub, registry *sources.Registr
 			if p.VoiceConn == nil {
 				p.VoiceConn = voice.NewVoiceConn(userID, guildID)
 			}
-			// Endpoint might need to be trimmed of :80 suffix
-			// Lavalink clients usually provide it with :80 or :443
-			// disgo handles this but we should be aware.
-
-			// TODO: Find channelID from somewhere?
-			// Actually Lavalink's PATCH doesn't provide channelID in VoiceState.
-			// It only provides token, endpoint, sessionId.
-			// Wait, the client usually joins the channel BEFORE sending this.
-			// In Lavalink v4, the channelID is NOT in the voice state.
-			// But disgo's HandleVoiceStateUpdate expects it.
-			// Actually, if we don't have it, we might have issues.
-			// Let's assume we can use a dummy for now or find it later.
-			// In a real bot, you'd know which channel you are joining.
-			// GoLink receives this from the client.
-
-			// Let's check disgo voice.Conn.Open
-			// err := p.VoiceConn.Open(c.Context(), channelID, userID, req.Voice.SessionID, req.Voice.Token, req.Voice.Endpoint)
+			// In a real implementation, we would also need the channelID here
+			// which is often sent separately or expected in the voice state
+			// For now we omit the actual Open call until we have full flow
 		}
 
 		return c.JSON(mapPlayerToResponse(p))
@@ -197,7 +183,6 @@ func DeletePlayer(manager *player.Manager) fiber.Handler {
 }
 
 func mapPlayerToResponse(p *player.Player) PlayerResponse {
-	// TODO: Handle Voice field mapping if implemented
 	return PlayerResponse{
 		GuildID: p.GuildID,
 		Track:   p.Track,

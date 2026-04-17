@@ -2,10 +2,12 @@ package voice
 
 import (
 	"context"
+	"log/slog"
 
-	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/voice"
+	"github.com/disgoorg/godave"
 	"github.com/disgoorg/godave/golibdave"
 	"github.com/disgoorg/snowflake/v2"
 )
@@ -16,10 +18,11 @@ type VoiceConn struct {
 }
 
 func NewVoiceConn(userID snowflake.ID, guildID snowflake.ID) *VoiceConn {
-	// voiceStateUpdateFunc is not needed as GoLink doesn't have a bot client,
-	// it just receives state from the user's bot.
 	manager := voice.NewManager(nil,
-		voice.WithDaveSessionCreateFunc(golibdave.NewSession),
+		userID,
+		voice.WithDaveSessionCreateFunc(func(logger *slog.Logger, userId godave.UserID, callbacks godave.Callbacks) godave.Session {
+			return golibdave.NewSession(logger, userId, callbacks)
+		}),
 	)
 
 	conn := manager.CreateConn(guildID)
@@ -31,8 +34,7 @@ func NewVoiceConn(userID snowflake.ID, guildID snowflake.ID) *VoiceConn {
 }
 
 func (c *VoiceConn) Open(ctx context.Context, channelID snowflake.ID, userID snowflake.ID, sessionID string, token string, endpoint string) error {
-	// We need to provide the voice server update to the connection.
-	c.conn.HandleVoiceStateUpdate(bot.EventVoiceStateUpdate{
+	c.conn.HandleVoiceStateUpdate(gateway.EventVoiceStateUpdate{
 		VoiceState: discord.VoiceState{
 			GuildID:   c.conn.GuildID(),
 			ChannelID: &channelID,
@@ -41,19 +43,16 @@ func (c *VoiceConn) Open(ctx context.Context, channelID snowflake.ID, userID sno
 		},
 	})
 
-	c.conn.HandleVoiceServerUpdate(bot.EventVoiceServerUpdate{
-		VoiceServerUpdate: discord.VoiceServerUpdate{
-			GuildID:  c.conn.GuildID(),
-			Token:    token,
-			Endpoint: endpoint,
-		},
+	c.conn.HandleVoiceServerUpdate(gateway.EventVoiceServerUpdate{
+		GuildID:  c.conn.GuildID(),
+		Token:    token,
+		Endpoint: &endpoint,
 	})
 
 	return c.conn.Open(ctx, channelID, false, false)
 }
 
 func (c *VoiceConn) IsConnected() bool {
-	// Check if gateway is open
 	return c.conn.Gateway().Status() == voice.StatusReady
 }
 
