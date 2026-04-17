@@ -9,8 +9,8 @@ import (
 	"github.com/disgoorg/disgo/gateway"
 	"github.com/disgoorg/disgo/voice"
 	"github.com/disgoorg/godave"
-	"github.com/disgoorg/godave/golibdave"
 	"github.com/disgoorg/snowflake/v2"
+	"github.com/thomas-vilte/dave-go/session"
 )
 
 type VoiceConn struct {
@@ -27,7 +27,7 @@ func NewVoiceConn(userID snowflake.ID, guildID snowflake.ID) *VoiceConn {
 	manager := voice.NewManager(noOpStateUpdate,
 		userID,
 		voice.WithDaveSessionCreateFunc(func(logger *slog.Logger, userId godave.UserID, callbacks godave.Callbacks) godave.Session {
-			return golibdave.NewSession(logger, userId, callbacks)
+			return session.New(logger, userId, callbacks)
 		}),
 	)
 
