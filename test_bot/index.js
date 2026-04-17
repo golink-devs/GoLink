@@ -40,10 +40,10 @@ client.on('messageCreate', async (message) => {
     const voiceChannel = message.member.voice.channel;
     if (!voiceChannel) return message.reply('You must be in a voice channel!');
 
-    const player = await node.joinChannel({
+    const player = await shoukaku.joinVoiceChannel({
         guildId: message.guild.id,
         channelId: voiceChannel.id,
-        shardId: 0
+        shardId: message.guild.shardId
     });
 
     await player.playTrack({ track: track.encoded });
